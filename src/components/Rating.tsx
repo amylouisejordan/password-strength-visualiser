@@ -1,7 +1,11 @@
 import { styled } from "styled-components";
 
 interface RatingProps {
-  result: { entropy: number };
+  result: {
+    entropy: number;
+    label?: string;
+    gradient?: string;
+  };
 }
 
 const Age = styled.div`
@@ -52,16 +56,23 @@ const Rating = (props: RatingProps) => {
     };
   };
 
+  const lifetime = estimatePasswordLifetime(result.entropy);
+
+  const lifetimeColors: Record<string, string> = {
+    Days: "#fda4af",
+    Months: "#f9a8d4",
+    Years: "#fde68a",
+    "Decades+": "#86efac",
+  };
+
   return (
     <>
       <Age>
         <Label>Estimated lifetime:</Label>
-        <Value>
-          {estimatePasswordLifetime(result.entropy).label}
+        <Value style={{ color: lifetimeColors[lifetime.label] }}>
+          {lifetime.label}
         </Value>
-        <Detail>
-          {estimatePasswordLifetime(result.entropy).detail}
-        </Detail>
+        <Detail>{lifetime.detail}</Detail>
       </Age>
     </>
   );

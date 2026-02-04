@@ -54,3 +54,9 @@ export const Button = styled.button`
     cursor: not-allowed;
   }
 `;
+
+export const Note = styled.div`
+color: var(--psv-muted);
+font-style: italic;
+margin-top: 0.6rem;
+`;

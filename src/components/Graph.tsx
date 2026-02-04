@@ -5,6 +5,12 @@ interface GraphProps {
   result: { entropy: number };
 }
 
+interface Point {
+  x: number;
+  y: number;
+  entropy: number;
+}
+
 const GraphSection = styled.svg`
   width: 100%;
   border-radius: 0.8rem;
@@ -81,6 +87,7 @@ const Sub = styled.span`
 const Graph = (props: GraphProps) => {
   const { result } = props;
   const graphRef = useRef<SVGSVGElement>(null);
+  const historyRef = useRef<number[]>([]);
   const [entropyHistory, setEntropyHistory] = useState<number[]>([]);
 
   const { graphPath, graphFillPath } = useMemo(() => {
@@ -100,7 +107,7 @@ const Graph = (props: GraphProps) => {
       entropy: e,
     }));
 
-    const buildPath = (pts: any[]) =>
+    const buildPath = (pts: Point[]) =>
       pts.reduce((acc, p, i, arr) => {
         if (i === 0) return `M ${p.x},${p.y}`;
         const prev = arr[i - 1];
@@ -116,9 +123,21 @@ const Graph = (props: GraphProps) => {
 
   useEffect(() => {
     if (result) {
-      setEntropyHistory((prev) => [...prev.slice(-29), result.entropy]);
+      historyRef.current = [...historyRef.current.slice(-29), result.entropy];
+      setEntropyHistory([...historyRef.current]);
     }
   }, [result]);
+
+  useEffect(() => {
+    if (!graphRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      setEntropyHistory((prev) => [...prev]);
+    });
+
+    observer.observe(graphRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <>
@@ -126,7 +145,14 @@ const Graph = (props: GraphProps) => {
         <Sub>Entropy Graph</Sub>
 
         <GraphActions>
-          <Info tabIndex={0}>
+          <Info
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.currentTarget.classList.toggle("active");
+              }
+            }}
+          >
             ⓘ
             <Tooltip>
               Shows how your password’s entropy changes as you type. Higher =
@@ -135,6 +161,7 @@ const Graph = (props: GraphProps) => {
           </Info>
         </GraphActions>
       </GraphHeader>
+
       <GraphSection ref={graphRef} height="80">
         <defs>
           <pattern

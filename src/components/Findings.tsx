@@ -1,8 +1,15 @@
 import { styled } from "styled-components";
-import { DividerLabel, DividerLine } from "./styled";
+import { Divider, DividerLabel, DividerLine, Note } from "./styled";
+import { typeColors } from "./constants";
+import { theme } from "../theme";
+
+interface Finding {
+  type: string;
+  detail: string;
+}
 
 interface FindingsProps {
-  result: { findings: { type: string; detail: string }[] };
+  result: { findings: Array<Finding> };
 }
 
 const FindingsSection = styled.div`
@@ -13,8 +20,8 @@ const FindingsSection = styled.div`
   margin-bottom: 1.2rem;
 `;
 
-const Pill = styled.span`
-  background: var(--psv-accent-light);
+const Pill = styled.span<{ typeKey: string }>`
+  background: ${({ typeKey }) => typeColors[typeKey] ?? theme.accentLight};
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
   border: 1px solid var(--psv-accent);
@@ -22,16 +29,10 @@ const Pill = styled.span`
   color: var(--psv-text);
   transition: var(--psv-transition);
 
-  hover {
+  &:hover {
     background: var(--psv-accent);
     color: white;
   }
-`;
-
-const Note = styled.div`
-  color: var(--psv-muted);
-  font-style: italic;
-  margin-top: 0.6rem;
 `;
 
 const Findings = (props: FindingsProps) => {
@@ -39,16 +40,16 @@ const Findings = (props: FindingsProps) => {
 
   return (
     <>
-      <div className="psv-divider">
+      <Divider>
         <DividerLine />
         <DividerLabel>Analysis</DividerLabel>
         <DividerLine />
-      </div>
+      </Divider>
 
-      {result.findings.length ? (
+      {result.findings.length > 0 ? (
         <FindingsSection>
-          {result.findings.map((f, i) => (
-            <Pill key={i}>
+          {result.findings.map((f) => (
+            <Pill typeKey={f.type} key={`${f.type}-${f.detail}`}>
               🔎 {f.type}: <code>{f.detail}</code>
             </Pill>
           ))}

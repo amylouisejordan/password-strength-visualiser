@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { Button } from "./styled";
+import { useEffect, useRef } from "react";
 
 interface GeneratorProps {
   generateCustomPassword: (length: number) => void;
@@ -67,6 +68,40 @@ const Generator = (props: GeneratorProps) => {
   const { generateCustomPassword, setPwd, setShowGenerator, generatedPwd } =
     props;
 
+  const firstInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowGenerator(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    firstInputRef.current?.focus();
+
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowGenerator(false);
+      if (e.key === "Enter") {
+        setPwd(generatedPwd);
+        setShowGenerator(false);
+      }
+      if (e.key.toLowerCase() === "r") generateCustomPassword(20);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generatedPwd]);
+
   return (
     <>
       <Backdrop onClick={() => setShowGenerator(false)}>
@@ -76,6 +111,7 @@ const Generator = (props: GeneratorProps) => {
           <Label>
             Length
             <RangeInput
+              ref={firstInputRef}
               min="8"
               max="32"
               defaultValue="20"

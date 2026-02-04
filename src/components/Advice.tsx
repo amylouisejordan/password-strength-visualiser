@@ -2,12 +2,13 @@ import styled from "styled-components";
 import { Divider, DividerLabel, DividerLine, DividerSoft } from "./styled";
 
 interface AdviceProps {
-  result: { advice: { type: string; detail: string }[] };
+  result: { advice: { detail: string }[] };
 }
 
-const AdviceSection = styled.div`
+const AdviceSection = styled.ul`
   margin-top: 0.6rem;
   padding-left: 1.2rem;
+  list-style: disc;
 
   li {
     margin-bottom: 0.5rem;
@@ -29,11 +30,11 @@ const Advice = (props: AdviceProps) => {
       </DividerSoft>
 
       <AdviceSection>
-        {result.advice.length ? (
-          result.advice.map((a, i) => <li key={i}>{a.detail}</li>)
-        ) : (
-          <li>Looks good! Consider a long passphrase with uncommon words.</li>
-        )}
+        {result.advice
+          .filter((a) => a.detail && a.detail.trim().length > 0)
+          .map((a) => (
+            <li key={a.detail}>{a.detail}</li>
+          ))}
       </AdviceSection>
     </>
   );
