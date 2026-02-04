@@ -3,6 +3,7 @@ import zxcvbn from "zxcvbn";
 import Graph from "./Graph";
 import Policy from "./Policy";
 import Findings from "./Findings";
+import Advice from "./Advice";
 
 const BANDS = [
   {
@@ -233,22 +234,7 @@ const PasswordStrength = () => {
           <Graph result={result} />
           <Policy pwd={pwd} />
           <Findings result={result} />
-
-          <div className="psv-divider psv-divider-soft">
-            <span className="psv-divider-line" />
-            <span className="psv-divider-label">Advice</span>
-            <span className="psv-divider-line" />
-          </div>
-
-          <ul className="psv-advice">
-            {result.advice.length ? (
-              result.advice.map((a, i) => <li key={i}>{a}</li>)
-            ) : (
-              <li>
-                Looks good! Consider a long passphrase with uncommon words.
-              </li>
-            )}
-          </ul>
+          <Advice result={result} />
         </>
       )}
 
