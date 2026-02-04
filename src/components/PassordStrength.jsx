@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import zxcvbn from "zxcvbn";
 
 const BANDS = [
@@ -31,10 +31,43 @@ const BANDS = [
 
 const QWERTY = "qwertyuiopasdfghjklzxcvbnm";
 
+const estimatePasswordLifetime = (entropyBits) => {
+  if (!entropyBits)
+    return { label: "Unknown", detail: "Start typing to estimate lifetime." };
+  if (entropyBits < 40)
+    return {
+      label: "Days",
+      detail: "This might only resist guessing for days.",
+    };
+  if (entropyBits < 60)
+    return { label: "Months", detail: "Likely safe for a few months at best." };
+  if (entropyBits < 80)
+    return { label: "Years", detail: "Could hold up for several years." };
+  return {
+    label: "Decades+",
+    detail: "Very strong. Likely safe for decades with current attack models.",
+  };
+};
+
 const PasswordStrength = () => {
   const [pwd, setPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [entropyHistory, setEntropyHistory] = useState([]);
+  const [prevLabel, setPrevLabel] = useState(null);
+
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [generatedPwd, setGeneratedPwd] = useState("");
+
+  const [policy, setPolicy] = useState({
+    minLength: 12,
+    requireUpper: true,
+    requireLower: true,
+    requireNumber: true,
+    requireSymbol: false,
+  });
+
+  const [replayIndex, setReplayIndex] = useState(null);
+
   const graphRef = useRef(null);
 
   const result = useMemo(() => {
@@ -43,7 +76,6 @@ const PasswordStrength = () => {
     const zx = zxcvbn(pwd);
     let entropy = zx.guesses_log10 * Math.log2(10);
 
-    // Detect keyboard walk
     const letters = pwd.toLowerCase().replace(/[^a-z]/g, "");
     let longestWalk = 1;
     let run = 1;
@@ -98,12 +130,37 @@ const PasswordStrength = () => {
     };
   }, [pwd]);
 
-  // Update entropy graph
-  useMemo(() => {
+  useEffect(() => {
     if (result) {
       setEntropyHistory((prev) => [...prev.slice(-29), result.entropy]);
     }
   }, [result]);
+
+  useEffect(() => {
+    if (!result) return;
+
+    if (
+      prevLabel &&
+      BANDS.findIndex((b) => b.label === result.label) <
+        BANDS.findIndex((b) => b.label === prevLabel)
+    )
+      setPrevLabel(result.label);
+  }, [result, prevLabel]);
+
+  useEffect(() => {
+    if (replayIndex === null || entropyHistory.length < 2) return;
+
+    if (replayIndex >= entropyHistory.length - 1) {
+      const timeout = setTimeout(() => setReplayIndex(null), 400);
+      return () => clearTimeout(timeout);
+    }
+
+    const id = setTimeout(() => {
+      setReplayIndex((i) => (i == null ? 0 : i + 1));
+    }, 80);
+
+    return () => clearTimeout(id);
+  }, [replayIndex, entropyHistory.length]);
 
   const meterPct = result
     ? Math.min(100, Math.round((result.entropy / 80) * 100))
@@ -111,29 +168,60 @@ const PasswordStrength = () => {
 
   const copyToClipboard = () => navigator.clipboard.writeText(pwd);
 
-  const generateStrongPassword = () => {
+  const generateCustomPassword = (len = 20) => {
     const chars =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+";
     let out = "";
-    for (let i = 0; i < 20; i++)
+    for (let i = 0; i < len; i++)
       out += chars[Math.floor(Math.random() * chars.length)];
-    setPwd(out);
+    setGeneratedPwd(out);
   };
 
-  // Mascot mood
   const mascotMood = result?.label ?? "Very weak";
-  const mascot = {
-    "Very weak": { face: "😵", text: "Oh no… we can do better!" },
-    Weak: { face: "😟", text: "Getting there, but still risky." },
-    Fair: { face: "😌", text: "Not bad! A bit more oomph?" },
-    Strong: { face: "😎", text: "Nice! That’s a solid password." },
-    "Very strong": { face: "🦄", text: "Legendary. You’re a password wizard." },
+
+  const badge = {
+    "Very weak": { icon: "🥀", label: "Beginner" },
+    Weak: { icon: "🌱", label: "Trying" },
+    Fair: { icon: "🌼", label: "Getting Stronger" },
+    Strong: { icon: "🌟", label: "Secure" },
+    "Very strong": { icon: "🏆", label: "Master of Passwords" },
   }[mascotMood];
 
-  // Build smooth curve + fill + sparkles
-  const { graphPath, graphFillPath, peakPoints } = useMemo(() => {
+  const policyResult = useMemo(() => {
+    if (!pwd) return null;
+
+    const issues = [];
+
+    if (pwd.length < policy.minLength) {
+      issues.push(`Needs at least ${policy.minLength} characters.`);
+    }
+    if (policy.requireUpper && !/[A-Z]/.test(pwd)) {
+      issues.push("Add at least one uppercase letter.");
+    }
+    if (policy.requireLower && !/[a-z]/.test(pwd)) {
+      issues.push("Add at least one lowercase letter.");
+    }
+    if (policy.requireNumber && !/[0-9]/.test(pwd)) {
+      issues.push("Add at least one number.");
+    }
+    if (policy.requireSymbol && !/[^\w]/.test(pwd)) {
+      issues.push("Add at least one symbol.");
+    }
+
+    return {
+      passes: issues.length === 0,
+      issues,
+    };
+  }, [pwd, policy]);
+
+  const { graphPath, graphFillPath, replayPath } = useMemo(() => {
     if (!graphRef.current || entropyHistory.length < 2)
-      return { graphPath: "", graphFillPath: "", peakPoints: [] };
+      return {
+        graphPath: "",
+        graphFillPath: "",
+        peakPoints: [],
+        replayPath: "",
+      };
 
     const width = graphRef.current.clientWidth;
     const height = 80;
@@ -151,17 +239,23 @@ const PasswordStrength = () => {
       );
     });
 
-    const path = points.reduce((acc, p, i, arr) => {
-      if (i === 0) return `M ${p.x},${p.y}`;
-      const prev = arr[i - 1];
-      const cx = (prev.x + p.x) / 2;
-      return acc + ` C ${cx},${prev.y} ${cx},${p.y} ${p.x},${p.y}`;
-    }, "");
+    const buildPath = (pts) =>
+      pts.reduce((acc, p, i, arr) => {
+        if (i === 0) return `M ${p.x},${p.y}`;
+        const prev = arr[i - 1];
+        const cx = (prev.x + p.x) / 2;
+        return acc + ` C ${cx},${prev.y} ${cx},${p.y} ${p.x},${p.y}`;
+      }, "");
 
+    const path = buildPath(points);
     const fill = path + ` L ${width},${height} L 0,${height} Z`;
 
-    return { graphPath: path, graphFillPath: fill, peakPoints };
-  }, [entropyHistory]);
+    const replayPoints =
+      replayIndex == null ? [] : points.slice(0, Math.max(2, replayIndex + 1));
+    const replayPath = replayPoints.length ? buildPath(replayPoints) : "";
+
+    return { graphPath: path, graphFillPath: fill, peakPoints, replayPath };
+  }, [entropyHistory, replayIndex]);
 
   return (
     <div className="psv-shell">
@@ -171,10 +265,9 @@ const PasswordStrength = () => {
         <span className="sparkle">✨</span>
       </h1>
 
-      {/* Mascot */}
-      <div className="psv-mascot">
-        <div className="psv-mascot-face">{mascot.face}</div>
-        <div className="psv-mascot-text">{mascot.text}</div>
+      <div className="psv-badge">
+        <span className="psv-badge-icon">{badge.icon}</span>
+        <span className="psv-badge-label">{badge.label}</span>
       </div>
 
       <div className="psv-input">
@@ -197,7 +290,13 @@ const PasswordStrength = () => {
             📋 Copy
           </button>
 
-          <button className="psv-btn" onClick={generateStrongPassword}>
+          <button
+            className="psv-btn"
+            onClick={() => {
+              generateCustomPassword(20);
+              setShowGenerator(true);
+            }}
+          >
             ⚡ Generate
           </button>
         </div>
@@ -215,23 +314,31 @@ const PasswordStrength = () => {
           <div className="psv-meta">
             {result.label} · {result.entropy} bits
           </div>
+
+          <div className="psv-age">
+            <span className="psv-age-label">Estimated lifetime:</span>
+            <span className="psv-age-value">
+              {estimatePasswordLifetime(result.entropy).label}
+            </span>
+            <div className="psv-age-detail">
+              {estimatePasswordLifetime(result.entropy).detail}
+            </div>
+          </div>
         </>
       )}
 
-      <div className="psv-divider psv-divider-soft">
-        <span className="psv-divider-line" />
-        <span className="psv-divider-label">Entrophy Graph</span>
-        <span className="psv-divider-line" />
-      </div>
-
       <div className="psv-graph-header">
-        <span className="psv-info" tabIndex="0">
-          ⓘ
-          <span className="psv-tooltip">
-            Shows how your password’s entropy changes as you type. Higher =
-            stronger. Updates every keystroke.
+        <span className="psv-sub">Entropy Graph</span>
+
+        <div className="psv-graph-actions">
+          <span className="psv-info" tabIndex="0">
+            ⓘ
+            <span className="psv-tooltip">
+              Shows how your password’s entropy changes as you type. Higher =
+              stronger. Updates every keystroke.
+            </span>
           </span>
-        </span>
+        </div>
       </div>
 
       <svg ref={graphRef} className="psv-graph" height="80">
@@ -273,17 +380,119 @@ const PasswordStrength = () => {
           strokeWidth="3"
         />
 
-        {peakPoints.map((p, i) => (
-          <text key={i} x={p.x} y={p.y - 6} className="psv-sparkle">
-            ✨
-          </text>
-        ))}
+        {replayPath && (
+          <path
+            className="psv-graph-replay"
+            d={replayPath}
+            fill="none"
+            stroke="#a855f7"
+            strokeWidth="2"
+            strokeDasharray="4 4"
+          />
+        )}
       </svg>
 
       {!result && <div className="psv-note">Start typing to see analysis.</div>}
 
       {result && (
         <>
+          <div className="psv-divider psv-divider-soft">
+            <span className="psv-divider-line" />
+            <span className="psv-divider-label">Policy check</span>
+            <span className="psv-divider-line" />
+          </div>
+
+          <div className="psv-policy">
+            <div className="psv-policy-controls">
+              <label>
+                Min length
+                <input
+                  type="number"
+                  min="4"
+                  max="64"
+                  value={policy.minLength}
+                  onChange={(e) =>
+                    setPolicy((p) => ({
+                      ...p,
+                      minLength: Number(e.target.value) || 0,
+                    }))
+                  }
+                />
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  checked={policy.requireUpper}
+                  onChange={(e) =>
+                    setPolicy((p) => ({ ...p, requireUpper: e.target.checked }))
+                  }
+                />
+                Uppercase
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  checked={policy.requireLower}
+                  onChange={(e) =>
+                    setPolicy((p) => ({ ...p, requireLower: e.target.checked }))
+                  }
+                />
+                Lowercase
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  checked={policy.requireNumber}
+                  onChange={(e) =>
+                    setPolicy((p) => ({
+                      ...p,
+                      requireNumber: e.target.checked,
+                    }))
+                  }
+                />
+                Number
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  checked={policy.requireSymbol}
+                  onChange={(e) =>
+                    setPolicy((p) => ({
+                      ...p,
+                      requireSymbol: e.target.checked,
+                    }))
+                  }
+                />
+                Symbol
+              </label>
+            </div>
+
+            {pwd && policyResult && (
+              <div
+                className={`psv-policy-status ${
+                  policyResult.passes ? "ok" : "fail"
+                }`}
+              >
+                {policyResult.passes ? (
+                  <span>✅ Meets current policy.</span>
+                ) : (
+                  <>
+                    <span>⚠ Doesn’t meet policy:</span>
+                    <ul>
+                      {policyResult.issues.map((i, idx) => (
+                        <li key={idx}>{i}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="psv-divider">
             <span className="psv-divider-line" />
             <span className="psv-divider-label">Analysis</span>
@@ -318,6 +527,50 @@ const PasswordStrength = () => {
             )}
           </ul>
         </>
+      )}
+
+      {showGenerator && (
+        <div
+          className="psv-modal-backdrop"
+          onClick={() => setShowGenerator(false)}
+        >
+          <div className="psv-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="psv-modal-title">Generate Password</h3>
+
+            <label className="psv-modal-label">
+              Length
+              <input
+                type="range"
+                min="8"
+                max="32"
+                defaultValue="20"
+                onChange={(e) => generateCustomPassword(Number(e.target.value))}
+              />
+            </label>
+
+            <div className="psv-modal-output">{generatedPwd}</div>
+
+            <div className="psv-modal-actions">
+              <button
+                className="psv-btn"
+                type="button"
+                onClick={() => generateCustomPassword(20)}
+              >
+                🔁 Regenerate
+              </button>
+              <button
+                className="psv-btn"
+                type="button"
+                onClick={() => {
+                  setPwd(generatedPwd);
+                  setShowGenerator(false);
+                }}
+              >
+                ✅ Use this password
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
