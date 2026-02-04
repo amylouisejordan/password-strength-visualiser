@@ -1,6 +1,31 @@
+import { styled } from "styled-components";
+
 interface RatingProps {
   result: { entropy: number };
 }
+
+const Age = styled.div`
+  margin-top: 0.2rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.7rem;
+  background: rgba(198, 180, 255, 0.12);
+  border: 1px solid rgba(198, 180, 255, 0.5);
+  font-size: 0.85rem;
+`;
+
+const Label = styled.div`
+  font-weight: 600;
+  margin-right: 0.25rem;
+`;
+
+const Value = styled.div`
+  font-weight: 700;
+`;
+
+const Detail = styled.div`
+  margin-top: 0.2rem;
+  color: var(--psv-muted);
+`;
 
 const Rating = (props: RatingProps) => {
   const { result } = props;
@@ -29,15 +54,15 @@ const Rating = (props: RatingProps) => {
 
   return (
     <>
-      <div className="psv-age">
-        <span className="psv-age-label">Estimated lifetime:</span>
-        <span className="psv-age-value">
+      <Age>
+        <Label>Estimated lifetime:</Label>
+        <Value>
           {estimatePasswordLifetime(result.entropy).label}
-        </span>
-        <div className="psv-age-detail">
+        </Value>
+        <Detail>
           {estimatePasswordLifetime(result.entropy).detail}
-        </div>
-      </div>
+        </Detail>
+      </Age>
     </>
   );
 };

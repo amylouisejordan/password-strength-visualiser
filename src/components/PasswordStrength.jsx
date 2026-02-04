@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import styled, { keyframes } from "styled-components";
 import zxcvbn from "zxcvbn";
 import Graph from "./Graph";
 import Policy from "./Policy";
@@ -6,6 +7,102 @@ import Findings from "./Findings";
 import Advice from "./Advice";
 import Rating from "./Rating";
 import Generator from "./Generator";
+import { Button } from "./styled";
+
+const Shell = styled.div`
+  max-width: 500px;
+  margin: 2.5rem auto;
+  padding: 2rem;
+  background: var(--psv-card);
+  border-radius: var(--psv-radius);
+  box-shadow: var(--psv-shadow);
+  border: 2px solid var(--psv-border);
+  font-family: "Inter", system-ui, sans-serif;
+  position: relative;
+`;
+
+const Sparkle = styled.span`
+  font-size: 1.3rem;
+`;
+
+const Title = styled.h1`
+  text-align: center;
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--psv-text);
+  margin-bottom: 1.4rem;
+`;
+
+const Meta = styled.div`
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+`;
+
+const badgePop = keyframes` 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } `;
+
+const Badge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1.2rem;
+  padding: 0.3rem 0.6rem;
+  background: ${({ theme }) => theme.accentLight};
+  border: 1px solid ${({ theme }) => theme.accent};
+  border-radius: 999px;
+  font-size: 0.8rem;
+  animation: ${badgePop} 0.4s ease;
+`;
+
+const BadgeIcon = styled.span`
+  font-size: 1rem;
+`;
+
+const BadgeLabel = styled.span`
+  font-weight: 600;
+`;
+
+const Bar = styled.div`
+  height: 12px;
+  background: #f5e7f0;
+  border-radius: 999px;
+  margin: 1.2rem 0 0.6rem;
+  overflow: hidden;
+`;
+
+const BarFill = styled.div`
+  height: 100%;
+  width: ${({ width }) => width}%;
+  background: ${({ theme }) => theme.accentStrong};
+  transition: width 0.4s ease;
+`;
+
+const InputRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const Input = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+`;
+
+const TextInput = styled.input`
+  flex: 1;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.7rem;
+  border: 2px solid ${({ theme }) => theme.border};
+  background: ${({ theme }) => theme.bg};
+  font-size: 1rem;
+  transition: ${({ theme }) => theme.transition};
+
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.accent};
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(247, 168, 216, 0.25);
+  }
+`;
 
 const BANDS = [
   {
@@ -142,23 +239,23 @@ const PasswordStrength = () => {
   }[mascotMood];
 
   return (
-    <div className="psv-shell">
-      <h1 className="psv-title">
-        <span className="sparkle">✨</span>
+    <Shell>
+      <Title>
+        <Sparkle>✨</Sparkle>
         Password Strength Visualiser
-        <span className="sparkle">✨</span>
-      </h1>
+        <Sparkle>✨</Sparkle>
+      </Title>
 
-      <div className="psv-badge">
-        <span className="psv-badge-icon">{badge.icon}</span>
-        <span className="psv-badge-label">{badge.label}</span>
-      </div>
+      <Badge>
+        <BadgeIcon>{badge.icon}</BadgeIcon>
+        <BadgeLabel>{badge.label}</BadgeLabel>
+      </Badge>
 
-      <div className="psv-input">
+      <Input>
         <label htmlFor="pwd">Password</label>
 
-        <div className="psv-input-row">
-          <input
+        <InputRow>
+          <TextInput
             id="pwd"
             type={showPwd ? "text" : "password"}
             value={pwd}
@@ -166,38 +263,36 @@ const PasswordStrength = () => {
             placeholder="Type to analyse…"
           />
 
-          <button className="psv-btn" onClick={() => setShowPwd((s) => !s)}>
+          <Button onClick={() => setShowPwd((s) => !s)}>
             {showPwd ? "🙈 Hide" : "👁 Show"}
-          </button>
+          </Button>
 
-          <button className="psv-btn" onClick={copyToClipboard} disabled={!pwd}>
+          <Button onClick={copyToClipboard} disabled={!pwd}>
             📋 Copy
-          </button>
+          </Button>
 
-          <button
-            className="psv-btn"
+          <Button
             onClick={() => {
               generateCustomPassword(20);
               setShowGenerator(true);
             }}
           >
             ⚡ Generate
-          </button>
-        </div>
-      </div>
+          </Button>
+        </InputRow>
+      </Input>
 
-      <div className="psv-bar">
-        <div
-          className="psv-bar-fill"
+      <Bar>
+        <BarFill
           style={{ width: `${meterPct}%`, background: result?.gradient }}
         />
-      </div>
+      </Bar>
 
       {result && (
         <>
-          <div className="psv-meta">
+          <Meta>
             {result.label} · {result.entropy} bits
-          </div>
+          </Meta>
           <Rating result={result} />
         </>
       )}
@@ -221,7 +316,7 @@ const PasswordStrength = () => {
           generatedPwd={generatedPwd}
         />
       )}
-    </div>
+    </Shell>
   );
 };
 

@@ -1,8 +1,62 @@
 import { useMemo, useState } from "react";
+import styled from "styled-components";
+import { Divider, DividerLabel, DividerLine, DividerSoft } from "./styled";
 
 interface PolicyProps {
   pwd: string;
 }
+
+export const PolicySection = styled.div`
+  margin-top: 0.8rem;
+  padding: 0.8rem;
+  border-radius: 0.8rem;
+  background: #fffafc;
+  border: 1px dashed var(--psv-border);
+  font-size: 0.85rem;
+`;
+
+export const PolicyControls = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  input[type="number"] {
+    width: 3.2rem;
+    padding: 0.2rem 0.3rem;
+    border-radius: 0.4rem;
+    border: 1px solid var(--psv-border);
+    font-size: 0.8rem;
+  }
+`;
+
+export const PolicyStatus = styled.div<{ ok?: boolean }>`
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.6rem;
+
+  ${({ ok }) =>
+    ok
+      ? `
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+  `
+      : `
+    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.4);
+  `}
+
+  ul {
+    margin: 0.3rem 0 0;
+    padding-left: 1.1rem;
+  }
+`;
 
 const Policy = (props: PolicyProps) => {
   const { pwd } = props;
@@ -44,14 +98,16 @@ const Policy = (props: PolicyProps) => {
 
   return (
     <>
-      <div className="psv-divider psv-divider-soft">
-        <span className="psv-divider-line" />
-        <span className="psv-divider-label">Policy check</span>
-        <span className="psv-divider-line" />
-      </div>
+      <DividerSoft>
+        <Divider>
+          <DividerLine />
+          <DividerLabel>Policy check</DividerLabel>
+          <DividerLine />
+        </Divider>
+      </DividerSoft>
 
-      <div className="psv-policy">
-        <div className="psv-policy-controls">
+      <PolicySection>
+        <PolicyControls>
           <label>
             Min length
             <input
@@ -117,14 +173,10 @@ const Policy = (props: PolicyProps) => {
             />
             Symbol
           </label>
-        </div>
+        </PolicyControls>
 
         {pwd && policyResult && (
-          <div
-            className={`psv-policy-status ${
-              policyResult.passes ? "ok" : "fail"
-            }`}
-          >
+          <PolicyStatus ok={policyResult.passes}>
             {policyResult.passes ? (
               <span>✅ Meets current policy.</span>
             ) : (
@@ -137,9 +189,9 @@ const Policy = (props: PolicyProps) => {
                 </ul>
               </>
             )}
-          </div>
+          </PolicyStatus>
         )}
-      </div>
+      </PolicySection>
     </>
   );
 };

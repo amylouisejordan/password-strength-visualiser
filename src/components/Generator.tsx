@@ -1,3 +1,6 @@
+import styled from "styled-components";
+import { Button } from "./styled";
+
 interface GeneratorProps {
   generateCustomPassword: (length: number) => void;
   setPwd: (pwd: string) => void;
@@ -5,53 +8,98 @@ interface GeneratorProps {
   generatedPwd: string;
 }
 
+const Backdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.2s ease;
+  z-index: 50;
+`;
+
+const Modal = styled.div`
+  background: var(--psv-card);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 2px solid var(--psv-border);
+  box-shadow: var(--psv-shadow);
+  width: 320px;
+  animation: popIn 0.25s ease;
+`;
+
+const Title = styled.h3`
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+`;
+
+const Output = styled.div`
+  margin: 1rem 0;
+  padding: 0.6rem;
+  background: var(--psv-bg);
+  border-radius: 0.6rem;
+  border: 1px solid var(--psv-border);
+  font-family: monospace;
+  font-size: 0.9rem;
+  word-break: break-all;
+`;
+
+const Actions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+`;
+
+const RangeInput = styled.input.attrs({ type: "range" })`
+  width: 100%;
+  margin-top: 0.3rem;
+`;
+
 const Generator = (props: GeneratorProps) => {
   const { generateCustomPassword, setPwd, setShowGenerator, generatedPwd } =
     props;
 
   return (
     <>
-      <div
-        className="psv-modal-backdrop"
-        onClick={() => setShowGenerator(false)}
-      >
-        <div className="psv-modal" onClick={(e) => e.stopPropagation()}>
-          <h3 className="psv-modal-title">Generate Password</h3>
+      <Backdrop onClick={() => setShowGenerator(false)}>
+        <Modal onClick={(e) => e.stopPropagation()}>
+          <Title>Generate Password</Title>
 
-          <label className="psv-modal-label">
+          <Label>
             Length
-            <input
-              type="range"
+            <RangeInput
               min="8"
               max="32"
               defaultValue="20"
               onChange={(e) => generateCustomPassword(Number(e.target.value))}
             />
-          </label>
+          </Label>
 
-          <div className="psv-modal-output">{generatedPwd}</div>
+          <Output>{generatedPwd}</Output>
 
-          <div className="psv-modal-actions">
-            <button
-              className="psv-btn"
-              type="button"
-              onClick={() => generateCustomPassword(20)}
-            >
+          <Actions>
+            <Button onClick={() => generateCustomPassword(20)}>
               🔁 Regenerate
-            </button>
-            <button
-              className="psv-btn"
-              type="button"
+            </Button>
+            <Button
               onClick={() => {
                 setPwd(generatedPwd);
                 setShowGenerator(false);
               }}
             >
               ✅ Use this password
-            </button>
-          </div>
-        </div>
-      </div>
+            </Button>
+          </Actions>
+        </Modal>
+      </Backdrop>
     </>
   );
 };

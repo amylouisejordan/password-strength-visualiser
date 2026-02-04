@@ -1,8 +1,82 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import styled from "styled-components";
 
 interface GraphProps {
   result: { entropy: number };
 }
+
+const GraphSection = styled.svg`
+  width: 100%;
+  border-radius: 0.8rem;
+  border: 2px solid var(--psv-border);
+  overflow: hidden;
+  background: var(--psv-bg);
+`;
+
+const GraphHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.2rem;
+  margin-bottom: 0.4rem;
+`;
+
+const GraphActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+`;
+
+const BasePath = styled.path`
+  transition: d 0.4s ease;
+`;
+
+const GraphLine = BasePath;
+const GraphFill = BasePath;
+
+const Tooltip = styled.span`
+  position: absolute;
+  top: 120%;
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  background: white;
+  border: 1px solid var(--psv-border);
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.6rem;
+  font-size: 0.75rem;
+  width: 200px;
+  box-shadow: var(--psv-shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 10;
+`;
+
+const Info = styled.span`
+  position: relative;
+  width: 18px;
+  height: 18px;
+  font-size: 0.75rem;
+  background: var(--psv-accent-light);
+  border: 1px solid var(--psv-accent);
+  border-radius: 50%;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+
+  &:hover ${Tooltip}, &:focus ${Tooltip} {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+`;
+
+const Sub = styled.span`
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--psv-muted);
+`;
 
 const Graph = (props: GraphProps) => {
   const { result } = props;
@@ -15,7 +89,6 @@ const Graph = (props: GraphProps) => {
         graphPath: "",
         graphFillPath: "",
         peakPoints: [],
-        replayPath: "",
       };
 
     const width = graphRef.current.clientWidth;
@@ -49,20 +122,20 @@ const Graph = (props: GraphProps) => {
 
   return (
     <>
-      <div className="psv-graph-header">
-        <span className="psv-sub">Entropy Graph</span>
+      <GraphHeader>
+        <Sub>Entropy Graph</Sub>
 
-        <div className="psv-graph-actions">
-          <span className="psv-info" tabIndex={0}>
+        <GraphActions>
+          <Info tabIndex={0}>
             ⓘ
-            <span className="psv-tooltip">
+            <Tooltip>
               Shows how your password’s entropy changes as you type. Higher =
               stronger. Updates every keystroke.
-            </span>
-          </span>
-        </div>
-      </div>
-      <svg ref={graphRef} className="psv-graph" height="80">
+            </Tooltip>
+          </Info>
+        </GraphActions>
+      </GraphHeader>
+      <GraphSection ref={graphRef} height="80">
         <defs>
           <pattern
             id="psvGrid"
@@ -87,20 +160,10 @@ const Graph = (props: GraphProps) => {
 
         <rect width="100%" height="100%" fill="url(#psvGrid)" />
 
-        <path
-          className="psv-graph-fill"
-          d={graphFillPath}
-          fill="url(#psvGradient)"
-        />
+        <GraphFill d={graphFillPath} fill="url(#psvGradient)" />
 
-        <path
-          className="psv-graph-line"
-          d={graphPath}
-          fill="none"
-          stroke="#6366f1"
-          strokeWidth="3"
-        />
-      </svg>
+        <GraphLine d={graphPath} fill="none" stroke="#6366f1" strokeWidth="3" />
+      </GraphSection>
     </>
   );
 };
