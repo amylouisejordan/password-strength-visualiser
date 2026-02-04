@@ -4,6 +4,7 @@ import Graph from "./Graph";
 import Policy from "./Policy";
 import Findings from "./Findings";
 import Advice from "./Advice";
+import Rating from "./Rating";
 
 const BANDS = [
   {
@@ -34,24 +35,6 @@ const BANDS = [
 ];
 
 const QWERTY = "qwertyuiopasdfghjklzxcvbnm";
-
-const estimatePasswordLifetime = (entropyBits) => {
-  if (!entropyBits)
-    return { label: "Unknown", detail: "Start typing to estimate lifetime." };
-  if (entropyBits < 40)
-    return {
-      label: "Days",
-      detail: "This might only resist guessing for days.",
-    };
-  if (entropyBits < 60)
-    return { label: "Months", detail: "Likely safe for a few months at best." };
-  if (entropyBits < 80)
-    return { label: "Years", detail: "Could hold up for several years." };
-  return {
-    label: "Decades+",
-    detail: "Very strong. Likely safe for decades with current attack models.",
-  };
-};
 
 const PasswordStrength = () => {
   const [pwd, setPwd] = useState("");
@@ -214,16 +197,7 @@ const PasswordStrength = () => {
           <div className="psv-meta">
             {result.label} · {result.entropy} bits
           </div>
-
-          <div className="psv-age">
-            <span className="psv-age-label">Estimated lifetime:</span>
-            <span className="psv-age-value">
-              {estimatePasswordLifetime(result.entropy).label}
-            </span>
-            <div className="psv-age-detail">
-              {estimatePasswordLifetime(result.entropy).detail}
-            </div>
-          </div>
+          <Rating result={result} />
         </>
       )}
 
