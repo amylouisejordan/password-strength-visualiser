@@ -1,5 +1,6 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import zxcvbn from "zxcvbn";
+import Graph from "./Graph";
 import Policy from "./Policy";
 
 const BANDS = [
@@ -53,15 +54,10 @@ const estimatePasswordLifetime = (entropyBits) => {
 const PasswordStrength = () => {
   const [pwd, setPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
-  const [entropyHistory, setEntropyHistory] = useState([]);
   const [prevLabel, setPrevLabel] = useState(null);
 
   const [showGenerator, setShowGenerator] = useState(false);
   const [generatedPwd, setGeneratedPwd] = useState("");
-
-  const [replayIndex, setReplayIndex] = useState(null);
-
-  const graphRef = useRef(null);
 
   const result = useMemo(() => {
     if (!pwd) return null;
@@ -124,12 +120,6 @@ const PasswordStrength = () => {
   }, [pwd]);
 
   useEffect(() => {
-    if (result) {
-      setEntropyHistory((prev) => [...prev.slice(-29), result.entropy]);
-    }
-  }, [result]);
-
-  useEffect(() => {
     if (!result) return;
 
     if (
@@ -139,21 +129,6 @@ const PasswordStrength = () => {
     )
       setPrevLabel(result.label);
   }, [result, prevLabel]);
-
-  useEffect(() => {
-    if (replayIndex === null || entropyHistory.length < 2) return;
-
-    if (replayIndex >= entropyHistory.length - 1) {
-      const timeout = setTimeout(() => setReplayIndex(null), 400);
-      return () => clearTimeout(timeout);
-    }
-
-    const id = setTimeout(() => {
-      setReplayIndex((i) => (i == null ? 0 : i + 1));
-    }, 80);
-
-    return () => clearTimeout(id);
-  }, [replayIndex, entropyHistory.length]);
 
   const meterPct = result
     ? Math.min(100, Math.round((result.entropy / 80) * 100))
@@ -179,49 +154,6 @@ const PasswordStrength = () => {
     Strong: { icon: "🌟", label: "Secure" },
     "Very strong": { icon: "🏆", label: "Master of Passwords" },
   }[mascotMood];
-
-  const { graphPath, graphFillPath, replayPath } = useMemo(() => {
-    if (!graphRef.current || entropyHistory.length < 2)
-      return {
-        graphPath: "",
-        graphFillPath: "",
-        peakPoints: [],
-        replayPath: "",
-      };
-
-    const width = graphRef.current.clientWidth;
-    const height = 80;
-
-    const points = entropyHistory.map((e, i) => ({
-      x: (i / (entropyHistory.length - 1)) * width,
-      y: height - (e / 80) * height,
-      entropy: e,
-    }));
-
-    const peakPoints = points.filter((p, i) => {
-      if (i === 0 || i === points.length - 1) return false;
-      return (
-        p.entropy > points[i - 1].entropy && p.entropy > points[i + 1].entropy
-      );
-    });
-
-    const buildPath = (pts) =>
-      pts.reduce((acc, p, i, arr) => {
-        if (i === 0) return `M ${p.x},${p.y}`;
-        const prev = arr[i - 1];
-        const cx = (prev.x + p.x) / 2;
-        return acc + ` C ${cx},${prev.y} ${cx},${p.y} ${p.x},${p.y}`;
-      }, "");
-
-    const path = buildPath(points);
-    const fill = path + ` L ${width},${height} L 0,${height} Z`;
-
-    const replayPoints =
-      replayIndex == null ? [] : points.slice(0, Math.max(2, replayIndex + 1));
-    const replayPath = replayPoints.length ? buildPath(replayPoints) : "";
-
-    return { graphPath: path, graphFillPath: fill, peakPoints, replayPath };
-  }, [entropyHistory, replayIndex]);
 
   return (
     <div className="psv-shell">
@@ -293,75 +225,11 @@ const PasswordStrength = () => {
         </>
       )}
 
-      <div className="psv-graph-header">
-        <span className="psv-sub">Entropy Graph</span>
-
-        <div className="psv-graph-actions">
-          <span className="psv-info" tabIndex="0">
-            ⓘ
-            <span className="psv-tooltip">
-              Shows how your password’s entropy changes as you type. Higher =
-              stronger. Updates every keystroke.
-            </span>
-          </span>
-        </div>
-      </div>
-
-      <svg ref={graphRef} className="psv-graph" height="80">
-        <defs>
-          <pattern
-            id="psvGrid"
-            width="20"
-            height="20"
-            patternUnits="userSpaceOnUse"
-          >
-            <rect width="20" height="20" fill="var(--psv-bg)" />
-            <path
-              d="M 20 0 L 0 0 0 20"
-              fill="none"
-              stroke="var(--psv-border)"
-              strokeWidth="1"
-            />
-          </pattern>
-
-          <linearGradient id="psvGradient" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#c7d2fe" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#fbcfe8" stopOpacity="0.2" />
-          </linearGradient>
-        </defs>
-
-        <rect width="100%" height="100%" fill="url(#psvGrid)" />
-
-        <path
-          className="psv-graph-fill"
-          d={graphFillPath}
-          fill="url(#psvGradient)"
-        />
-
-        <path
-          className="psv-graph-line"
-          d={graphPath}
-          fill="none"
-          stroke="#6366f1"
-          strokeWidth="3"
-        />
-
-        {replayPath && (
-          <path
-            className="psv-graph-replay"
-            d={replayPath}
-            fill="none"
-            stroke="#a855f7"
-            strokeWidth="2"
-            strokeDasharray="4 4"
-          />
-        )}
-      </svg>
-
       {!result && <div className="psv-note">Start typing to see analysis.</div>}
 
       {result && (
         <>
+          <Graph result={result} />
           <Policy pwd={pwd} />
           <div className="psv-divider">
             <span className="psv-divider-line" />
