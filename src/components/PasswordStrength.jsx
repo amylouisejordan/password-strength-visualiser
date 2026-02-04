@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import zxcvbn from "zxcvbn";
 import Graph from "./Graph";
 import Policy from "./Policy";
+import Findings from "./Findings";
 
 const BANDS = [
   {
@@ -231,23 +232,7 @@ const PasswordStrength = () => {
         <>
           <Graph result={result} />
           <Policy pwd={pwd} />
-          <div className="psv-divider">
-            <span className="psv-divider-line" />
-            <span className="psv-divider-label">Analysis</span>
-            <span className="psv-divider-line" />
-          </div>
-
-          {result.findings.length ? (
-            <div className="psv-findings">
-              {result.findings.map((f, i) => (
-                <span className="psv-pill" key={i}>
-                  🔎 {f.type}: <code>{f.detail}</code>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="psv-note">No obvious patterns found. Nice!</div>
-          )}
+          <Findings result={result} />
 
           <div className="psv-divider psv-divider-soft">
             <span className="psv-divider-line" />
