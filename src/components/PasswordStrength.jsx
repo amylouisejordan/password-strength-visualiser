@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import zxcvbn from "zxcvbn";
+import Policy from "./Policy";
 
 const BANDS = [
   {
@@ -57,14 +58,6 @@ const PasswordStrength = () => {
 
   const [showGenerator, setShowGenerator] = useState(false);
   const [generatedPwd, setGeneratedPwd] = useState("");
-
-  const [policy, setPolicy] = useState({
-    minLength: 12,
-    requireUpper: true,
-    requireLower: true,
-    requireNumber: true,
-    requireSymbol: false,
-  });
 
   const [replayIndex, setReplayIndex] = useState(null);
 
@@ -186,33 +179,6 @@ const PasswordStrength = () => {
     Strong: { icon: "🌟", label: "Secure" },
     "Very strong": { icon: "🏆", label: "Master of Passwords" },
   }[mascotMood];
-
-  const policyResult = useMemo(() => {
-    if (!pwd) return null;
-
-    const issues = [];
-
-    if (pwd.length < policy.minLength) {
-      issues.push(`Needs at least ${policy.minLength} characters.`);
-    }
-    if (policy.requireUpper && !/[A-Z]/.test(pwd)) {
-      issues.push("Add at least one uppercase letter.");
-    }
-    if (policy.requireLower && !/[a-z]/.test(pwd)) {
-      issues.push("Add at least one lowercase letter.");
-    }
-    if (policy.requireNumber && !/[0-9]/.test(pwd)) {
-      issues.push("Add at least one number.");
-    }
-    if (policy.requireSymbol && !/[^\w]/.test(pwd)) {
-      issues.push("Add at least one symbol.");
-    }
-
-    return {
-      passes: issues.length === 0,
-      issues,
-    };
-  }, [pwd, policy]);
 
   const { graphPath, graphFillPath, replayPath } = useMemo(() => {
     if (!graphRef.current || entropyHistory.length < 2)
@@ -396,103 +362,7 @@ const PasswordStrength = () => {
 
       {result && (
         <>
-          <div className="psv-divider psv-divider-soft">
-            <span className="psv-divider-line" />
-            <span className="psv-divider-label">Policy check</span>
-            <span className="psv-divider-line" />
-          </div>
-
-          <div className="psv-policy">
-            <div className="psv-policy-controls">
-              <label>
-                Min length
-                <input
-                  type="number"
-                  min="4"
-                  max="64"
-                  value={policy.minLength}
-                  onChange={(e) =>
-                    setPolicy((p) => ({
-                      ...p,
-                      minLength: Number(e.target.value) || 0,
-                    }))
-                  }
-                />
-              </label>
-
-              <label>
-                <input
-                  type="checkbox"
-                  checked={policy.requireUpper}
-                  onChange={(e) =>
-                    setPolicy((p) => ({ ...p, requireUpper: e.target.checked }))
-                  }
-                />
-                Uppercase
-              </label>
-
-              <label>
-                <input
-                  type="checkbox"
-                  checked={policy.requireLower}
-                  onChange={(e) =>
-                    setPolicy((p) => ({ ...p, requireLower: e.target.checked }))
-                  }
-                />
-                Lowercase
-              </label>
-
-              <label>
-                <input
-                  type="checkbox"
-                  checked={policy.requireNumber}
-                  onChange={(e) =>
-                    setPolicy((p) => ({
-                      ...p,
-                      requireNumber: e.target.checked,
-                    }))
-                  }
-                />
-                Number
-              </label>
-
-              <label>
-                <input
-                  type="checkbox"
-                  checked={policy.requireSymbol}
-                  onChange={(e) =>
-                    setPolicy((p) => ({
-                      ...p,
-                      requireSymbol: e.target.checked,
-                    }))
-                  }
-                />
-                Symbol
-              </label>
-            </div>
-
-            {pwd && policyResult && (
-              <div
-                className={`psv-policy-status ${
-                  policyResult.passes ? "ok" : "fail"
-                }`}
-              >
-                {policyResult.passes ? (
-                  <span>✅ Meets current policy.</span>
-                ) : (
-                  <>
-                    <span>⚠ Doesn’t meet policy:</span>
-                    <ul>
-                      {policyResult.issues.map((i, idx) => (
-                        <li key={idx}>{i}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
+          <Policy pwd={pwd} />
           <div className="psv-divider">
             <span className="psv-divider-line" />
             <span className="psv-divider-label">Analysis</span>

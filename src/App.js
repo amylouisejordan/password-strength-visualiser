@@ -1,23 +1,8 @@
-import PasswordStrength from "./components/PassordStrength";
+import PasswordStrength from "./components/PasswordStrength";
 
 const App = () => {
   return (
     <>
-      {/* floating hearts background (decorative) */}
-      <div className="psv-hearts" aria-hidden="true">
-        <span className="heart"></span>
-        <span className="heart"></span>
-        <span className="heart"></span>
-        <span className="heart"></span>
-        <span className="heart"></span>
-        <span className="heart"></span>
-        <span className="heart"></span>
-        <span className="heart"></span>
-        <span className="heart"></span>
-        <span className="heart"></span>
-        <span className="heart"></span>
-        <span className="heart"></span>
-      </div>
       <PasswordStrength />
     </>
   );
